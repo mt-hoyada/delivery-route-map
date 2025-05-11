@@ -13,12 +13,27 @@
             max-height: 400px;
             overflow-y: auto;
         }
+        .custom-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            width: 300px;
+        }
+        .map-container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-4">
+    <div class="container-fluid p-0">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="custom-overlay">
                 <div class="card">
                     <div class="card-header">
                         <h5>거래처 선택</h5>
@@ -42,9 +57,6 @@
                         <button id="searchRoute" class="btn btn-primary w-100">경로 검색</button>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-8">
-                <div id="map"></div>
             </div>
         </div>
     </div>
