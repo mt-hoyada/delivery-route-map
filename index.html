@@ -144,8 +144,17 @@
         // 카카오 REST API 키 (반드시 본인의 키로 교체!)
         const KAKAO_REST_API_KEY = '549d1ac7cd53036d9349ca59450f3883'; // 예시 키, 반드시 본인 키로 교체
 
-        // 지도에 표시된 경로(Polyline) 저장용
+        // 결과 표시 영역 추가
+        let resultDiv = document.createElement('div');
+        resultDiv.id = 'routeResult';
+        resultDiv.style.marginBottom = '10px';
+        resultDiv.style.fontWeight = 'bold';
+        document.querySelector('.custom-overlay .card-body').prepend(resultDiv);
+
+        // 지도에 표시된 경로(Polyline) 및 마커 저장용
         let currentPolyline = null;
+        let startMarker = null;
+        let endMarker = null;
 
         // 경로 검색
         document.getElementById('searchRoute').addEventListener('click', function() {
@@ -198,10 +207,10 @@
                                             });
                                         });
                                     });
-                                    // 기존 경로 삭제
-                                    if (currentPolyline) {
-                                        currentPolyline.setMap(null);
-                                    }
+                                    // 기존 경로/마커 삭제
+                                    if (currentPolyline) currentPolyline.setMap(null);
+                                    if (startMarker) startMarker.setMap(null);
+                                    if (endMarker) endMarker.setMap(null);
                                     // 경로 Polyline 표시
                                     currentPolyline = new kakao.maps.Polyline({
                                         path: linePath,
@@ -211,21 +220,48 @@
                                         strokeStyle: 'solid'
                                     });
                                     currentPolyline.setMap(map);
-                                    // 출발지로 지도 이동
-                                    map.setCenter(new kakao.maps.LatLng(startCoords[1], startCoords[0]));
+                                    // 출발지/도착지 마커 표시
+                                    startMarker = new kakao.maps.Marker({
+                                        position: new kakao.maps.LatLng(startCoords[1], startCoords[0]),
+                                        map: map,
+                                        title: '출발지',
+                                        image: new kakao.maps.MarkerImage(
+                                            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/red_b.png',
+                                            new kakao.maps.Size(40, 42), {offset: new kakao.maps.Point(13, 37)})
+                                    });
+                                    endMarker = new kakao.maps.Marker({
+                                        position: new kakao.maps.LatLng(endCoords[1], endCoords[0]),
+                                        map: map,
+                                        title: '도착지',
+                                        image: new kakao.maps.MarkerImage(
+                                            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/blue_b.png',
+                                            new kakao.maps.Size(40, 42), {offset: new kakao.maps.Point(13, 37)})
+                                    });
+                                    // 경로 전체가 보이도록 지도 영역 fitBounds
+                                    let bounds = new kakao.maps.LatLngBounds();
+                                    linePath.forEach(function(latlng) { bounds.extend(latlng); });
+                                    map.setBounds(bounds);
+                                    // 소요 시간, 거리 표시
+                                    const duration = Math.round(route.summary.duration / 60); // 분
+                                    const distance = (route.summary.distance / 1000).toFixed(1); // km
+                                    resultDiv.innerHTML = `예상 소요 시간: <span style='color:#007bff'>${duration}분</span> / 거리: <span style='color:#007bff'>${distance}km</span>`;
                                 } else {
+                                    resultDiv.innerHTML = '';
                                     alert('경로를 찾을 수 없습니다.');
                                 }
                             })
                             .catch(err => {
+                                resultDiv.innerHTML = '';
                                 alert('경로 검색 중 오류가 발생했습니다.');
                                 console.error(err);
                             });
                         } else {
+                            resultDiv.innerHTML = '';
                             alert('도착지 주소를 좌표로 변환할 수 없습니다.');
                         }
                     });
                 } else {
+                    resultDiv.innerHTML = '';
                     alert('출발지 주소를 좌표로 변환할 수 없습니다.');
                 }
             });
