@@ -80,47 +80,60 @@
             map: map
         });
 
-        // 거래처 데이터 (실제로는 서버에서 가져와야 함)
-        const companies = {
-            "거래처1": [
-                { name: "상차지1", address: "서울시 강남구" },
-                { name: "하차지1", address: "서울시 서초구" }
-            ],
-            "거래처2": [
-                { name: "상차지2", address: "서울시 송파구" },
-                { name: "하차지2", address: "서울시 강동구" }
-            ]
-        };
+        // 구글 시트 CSV URL
+        const SHEET_ID = "1CrKQ-Baj4rnL8eYuehLLBuFS9Orsm5qlicd9Nq-kxjU";
+        const SHEET_NAME = "주소";
+        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+        // 거래처 데이터 저장용
+        let companies = {};
+
+        // 구글 시트에서 데이터 불러오기
+        fetch(SHEET_URL)
+            .then(response => response.text())
+            .then(csvText => {
+                const rows = csvText.trim().split('\n').map(row => row.split(','));
+                // 첫 행은 컬럼명이므로 제외
+                rows.slice(1).forEach(cols => {
+                    const company = cols[0].trim();
+                    const name = cols[1].trim();
+                    const address = cols[2].trim();
+                    if (!companies[company]) companies[company] = [];
+                    companies[company].push({ name, address });
+                });
+                updateCompanySelect();
+            });
 
         // 거래처 선택 옵션 생성
-        const companySelect = document.getElementById('companySelect');
-        Object.keys(companies).forEach(company => {
-            const option = document.createElement('option');
-            option.value = company;
-            option.textContent = company;
-            companySelect.appendChild(option);
-        });
+        function updateCompanySelect() {
+            const companySelect = document.getElementById('companySelect');
+            companySelect.innerHTML = '<option value="">거래처를 선택하세요</option>';
+            Object.keys(companies).forEach(company => {
+                const option = document.createElement('option');
+                option.value = company;
+                option.textContent = company;
+                companySelect.appendChild(option);
+            });
+        }
 
-        // 거래처 선택 시 주소 목록 업데이트
-        companySelect.addEventListener('change', function() {
+        // 거래처 선택 시 출발지/도착지 목록 업데이트
+        document.getElementById('companySelect').addEventListener('change', function() {
             const selectedCompany = this.value;
             const startAddress = document.getElementById('startAddress');
             const endAddress = document.getElementById('endAddress');
-            
-            // 주소 목록 초기화
             startAddress.innerHTML = '<option value="">출발지를 선택하세요</option>';
             endAddress.innerHTML = '<option value="">도착지를 선택하세요</option>';
 
-            if (selectedCompany) {
+            if (selectedCompany && companies[selectedCompany]) {
                 companies[selectedCompany].forEach(location => {
                     const startOption = document.createElement('option');
-                    startOption.value = location.address;
+                    startOption.value = location.name;
                     startOption.textContent = location.name;
                     startAddress.appendChild(startOption);
 
                     const endOption = document.createElement('option');
                     endOption.value = location.address;
-                    endOption.textContent = location.name;
+                    endOption.textContent = location.address;
                     endAddress.appendChild(endOption);
                 });
             }
@@ -128,25 +141,33 @@
 
         // 경로 검색
         document.getElementById('searchRoute').addEventListener('click', function() {
-            const startAddress = document.getElementById('startAddress').value;
+            const selectedCompany = document.getElementById('companySelect').value;
+            const startName = document.getElementById('startAddress').value;
             const endAddress = document.getElementById('endAddress').value;
 
-            if (!startAddress || !endAddress) {
-                alert('출발지와 도착지를 모두 선택해주세요.');
+            if (!selectedCompany || !startName || !endAddress) {
+                alert('거래처, 출발지, 도착지를 모두 선택해주세요.');
                 return;
             }
 
+            // 출발지 이름에 해당하는 주소 찾기
+            const startObj = companies[selectedCompany].find(loc => loc.name === startName);
+            if (!startObj) {
+                alert('출발지 정보를 찾을 수 없습니다.');
+                return;
+            }
+            const startAddress = startObj.address;
+
             // 주소를 좌표로 변환
             const geocoder = new kakao.maps.services.Geocoder();
-            
             geocoder.addressSearch(startAddress, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     const startCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                    
+
                     geocoder.addressSearch(endAddress, function(result, status) {
                         if (status === kakao.maps.services.Status.OK) {
                             const endCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                            
+
                             // 경로 검색
                             directionsService.route({
                                 origin: startCoords,
