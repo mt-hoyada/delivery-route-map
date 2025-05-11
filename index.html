@@ -105,23 +105,7 @@
         // 거래처 데이터 저장용
         let companies = {};
 
-        // 거래처리스트 상자 추가
-        let listDiv = document.createElement('div');
-        listDiv.id = 'companyListBox';
-        listDiv.style.marginTop = '20px';
-        listDiv.style.background = '#f8f9fa';
-        listDiv.style.border = '1px solid #ddd';
-        listDiv.style.borderRadius = '8px';
-        listDiv.style.padding = '10px';
-        listDiv.style.maxHeight = '200px';
-        listDiv.style.overflowY = 'auto';
-        listDiv.innerHTML = '<b>거래처리스트</b><div id="companyList"></div>';
-        document.querySelector('.custom-overlay .card-body').appendChild(listDiv);
-
-        // 거래처 마커 저장용
-        let companyMarkers = [];
-
-        // 거래처 리스트 생성 함수
+        // 거래처리스트 생성 함수
         function updateCompanyList() {
             const companyListDiv = document.getElementById('companyList');
             companyListDiv.innerHTML = '';
