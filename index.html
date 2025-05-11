@@ -141,50 +141,92 @@
             }
         });
 
+        // 카카오 REST API 키 (반드시 본인의 키로 교체!)
+        const KAKAO_REST_API_KEY = '549d1ac7cd53036d9349ca59450f3883'; // 예시 키, 반드시 본인 키로 교체
+
+        // 지도에 표시된 경로(Polyline) 저장용
+        let currentPolyline = null;
+
         // 경로 검색
         document.getElementById('searchRoute').addEventListener('click', function() {
             const selectedCompany = document.getElementById('companySelect').value;
             const startName = document.getElementById('startAddress').value;
-            const endAddress = document.getElementById('endAddress').value;
+            const endName = document.getElementById('endAddress').value;
 
-            if (!selectedCompany || !startName || !endAddress) {
+            if (!selectedCompany || !startName || !endName) {
                 alert('거래처, 출발지, 도착지를 모두 선택해주세요.');
                 return;
             }
 
-            // 출발지 이름에 해당하는 주소 찾기
+            // 출발지/도착지 이름에 해당하는 주소 찾기
             const startObj = companies[selectedCompany].find(loc => loc.name === startName);
-            if (!startObj) {
-                alert('출발지 정보를 찾을 수 없습니다.');
+            const endObj = companies[selectedCompany].find(loc => loc.name === endName);
+            if (!startObj || !endObj) {
+                alert('출발지 또는 도착지 정보를 찾을 수 없습니다.');
                 return;
             }
             const startAddress = startObj.address;
+            const endAddress = endObj.address;
 
-            // 주소를 좌표로 변환
+            // 주소를 좌표로 변환 (비동기 처리)
             const geocoder = new kakao.maps.services.Geocoder();
-            geocoder.addressSearch(startAddress, function(result, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                    const startCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
-                    geocoder.addressSearch(endAddress, function(result, status) {
-                        if (status === kakao.maps.services.Status.OK) {
-                            const endCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
-                            // 경로 검색
-                            // directionsService.route({
-                            //     origin: startCoords,
-                            //     destination: endCoords,
-                            //     waypoints: [],
-                            //     priority: kakao.maps.RoutePriority.FASTEST
-                            // }, function(result, status) {
-                            //     if (status === kakao.maps.services.Status.OK) {
-                            //         directionsRenderer.setDirections(result);
-                            //     } else {
-                            //         alert('경로를 찾을 수 없습니다.');
-                            //     }
-                            // });
+            geocoder.addressSearch(startAddress, function(startResult, startStatus) {
+                if (startStatus === kakao.maps.services.Status.OK) {
+                    const startCoords = [startResult[0].x, startResult[0].y];
+                    geocoder.addressSearch(endAddress, function(endResult, endStatus) {
+                        if (endStatus === kakao.maps.services.Status.OK) {
+                            const endCoords = [endResult[0].x, endResult[0].y];
+                            // 카카오 길찾기 REST API 호출 (자동차 경로)
+                            fetch(`https://apis-navi.kakaomobility.com/v1/directions?origin=${startCoords[0]},${startCoords[1]}&destination=${endCoords[0]},${endCoords[1]}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
+                                }
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.routes && data.routes.length > 0) {
+                                    const route = data.routes[0];
+                                    const linePath = [];
+                                    route.sections.forEach(section => {
+                                        section.roads.forEach(road => {
+                                            road.vertexes.forEach((v, i) => {
+                                                if (i % 2 === 0) {
+                                                    // vertexes: [lng, lat, lng, lat, ...]
+                                                    linePath.push(new kakao.maps.LatLng(road.vertexes[i+1], road.vertexes[i]));
+                                                }
+                                            });
+                                        });
+                                    });
+                                    // 기존 경로 삭제
+                                    if (currentPolyline) {
+                                        currentPolyline.setMap(null);
+                                    }
+                                    // 경로 Polyline 표시
+                                    currentPolyline = new kakao.maps.Polyline({
+                                        path: linePath,
+                                        strokeWeight: 5,
+                                        strokeColor: '#007bff',
+                                        strokeOpacity: 0.8,
+                                        strokeStyle: 'solid'
+                                    });
+                                    currentPolyline.setMap(map);
+                                    // 출발지로 지도 이동
+                                    map.setCenter(new kakao.maps.LatLng(startCoords[1], startCoords[0]));
+                                } else {
+                                    alert('경로를 찾을 수 없습니다.');
+                                }
+                            })
+                            .catch(err => {
+                                alert('경로 검색 중 오류가 발생했습니다.');
+                                console.error(err);
+                            });
+                        } else {
+                            alert('도착지 주소를 좌표로 변환할 수 없습니다.');
                         }
                     });
+                } else {
+                    alert('출발지 주소를 좌표로 변환할 수 없습니다.');
                 }
             });
         });
