@@ -92,6 +92,7 @@
         fetch(SHEET_URL)
             .then(response => response.text())
             .then(csvText => {
+                console.log(csvText);
                 const rows = csvText.trim().split('\n').map(row => row.split(','));
                 // 첫 행은 컬럼명이므로 제외
                 rows.slice(1).forEach(cols => {
