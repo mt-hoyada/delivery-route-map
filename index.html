@@ -105,6 +105,9 @@
         // 거래처 데이터 저장용
         let companies = {};
 
+        // 거래처 마커 저장용 (전역 선언)
+        let companyMarkers = [];
+
         // 거래처리스트 생성 함수
         function updateCompanyList() {
             const companyListDiv = document.getElementById('companyList');
@@ -122,12 +125,13 @@
             });
         }
 
-        // 거래처별 마커 표시 함수
+        // 거래처별 마커 표시 함수 (fitBounds 보장)
         function showCompanyMarkers(company) {
             // 기존 마커 삭제
             companyMarkers.forEach(marker => marker.setMap(null));
             companyMarkers = [];
             let bounds = new kakao.maps.LatLngBounds();
+            let geocodeCount = 0;
             companies[company].forEach(location => {
                 const geocoder = new kakao.maps.services.Geocoder();
                 geocoder.addressSearch(location.address, function(result, status) {
@@ -146,10 +150,11 @@
                         marker.addListener('mouseout', function() { infowindow.close(); });
                         companyMarkers.push(marker);
                         bounds.extend(coords);
-                        // 모든 마커가 추가된 후 fitBounds
-                        if (companyMarkers.length === companies[company].length) {
-                            map.setBounds(bounds);
-                        }
+                    }
+                    geocodeCount++;
+                    // 모든 주소 변환이 끝난 후 fitBounds
+                    if (geocodeCount === companies[company].length && companyMarkers.length > 0) {
+                        map.setBounds(bounds);
                     }
                 });
             });
@@ -334,7 +339,7 @@
             });
         });
 
-        // 홈버튼 기능 추가
+        // 홈버튼 기능 개선: 전국 LatLngBounds로 지도 조정
         function goHome() {
             if (currentPolyline) currentPolyline.setMap(null);
             if (startMarker) startMarker.setMap(null);
@@ -342,8 +347,12 @@
             companyMarkers.forEach(marker => marker.setMap(null));
             companyMarkers = [];
             resultDiv.innerHTML = '';
-            map.setCenter(new kakao.maps.LatLng(36.5, 127.8)); // 전국 중심
-            map.setLevel(13); // 전국이 보이는 줌 레벨
+            // 전국 LatLngBounds (한국 대략적 범위)
+            const koreaBounds = new kakao.maps.LatLngBounds(
+                new kakao.maps.LatLng(33.0, 124.0), // 남서쪽
+                new kakao.maps.LatLng(39.5, 132.0)  // 북동쪽
+            );
+            map.setBounds(koreaBounds);
             // 드롭다운 초기화
             document.getElementById('companySelect').selectedIndex = 0;
             document.getElementById('startAddress').innerHTML = '<option value="">출발지를 선택하세요</option>';
