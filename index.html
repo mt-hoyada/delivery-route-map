@@ -75,10 +75,11 @@
             level: 3
         };
         var map = new kakao.maps.Map(mapContainer, mapOption);
-        var directionsService = new kakao.maps.services.Directions();
-        var directionsRenderer = new kakao.maps.DirectionsRenderer({
-            map: map
-        });
+        // var directionsService = new kakao.maps.services.Directions();
+        // var directionsRenderer = new kakao.maps.DirectionsRenderer({
+        //     map: map
+        // });
+        // 위 Directions 관련 코드는 삭제되었습니다.
 
         // 구글 시트 CSV URL
         const SHEET_ID = "1CrKQ-Baj4rnL8eYuehLLBuFS9Orsm5qlicd9Nq-kxjU";
@@ -170,18 +171,18 @@
                             const endCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
 
                             // 경로 검색
-                            directionsService.route({
-                                origin: startCoords,
-                                destination: endCoords,
-                                waypoints: [],
-                                priority: kakao.maps.RoutePriority.FASTEST
-                            }, function(result, status) {
-                                if (status === kakao.maps.services.Status.OK) {
-                                    directionsRenderer.setDirections(result);
-                                } else {
-                                    alert('경로를 찾을 수 없습니다.');
-                                }
-                            });
+                            // directionsService.route({
+                            //     origin: startCoords,
+                            //     destination: endCoords,
+                            //     waypoints: [],
+                            //     priority: kakao.maps.RoutePriority.FASTEST
+                            // }, function(result, status) {
+                            //     if (status === kakao.maps.services.Status.OK) {
+                            //         directionsRenderer.setDirections(result);
+                            //     } else {
+                            //         alert('경로를 찾을 수 없습니다.');
+                            //     }
+                            // });
                         }
                     });
                 }
